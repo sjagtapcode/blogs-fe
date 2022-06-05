@@ -1,4 +1,5 @@
-import { createContext } from 'react';
+import { createContext, useContext, useState } from 'react';
+import axiosInstance from '../services/axiosInstance';
 
 export const AuthContext = createContext({
   isAuthenticated: false,
@@ -7,18 +8,53 @@ export const AuthContext = createContext({
   logout: () => {},
 });
 
+export const useAuth = () => useContext(AuthContext);
+
+// TODO : persist login
 const AuthProvider = ({ children }) => {
-  const login = () => {
-    // TODO login
+  const [user, setUser] = useState(null);
+  const [isAuthenticated, setAuthentication] = useState(false);
+  const login = async ({ email, password }) => {
+    console.log('email: ', email);
+    console.log('password: ', password);
+    const res = await axiosInstance.post('/login', {
+      email,
+      password,
+    });
+    const { accessToken, name, id, email: resEmail } = res?.data;
+    if (accessToken) {
+      // login success
+      setUser({
+        name,
+        email: resEmail,
+        id,
+        accessToken,
+      });
+      setAuthentication(true);
+
+      localStorage.setItem(
+        'loggedInUser',
+        JSON.stringify({
+          name,
+          email: resEmail,
+          id,
+          accessToken,
+        })
+      );
+    }
+    return res;
   };
   const logout = () => {
-    // TODO logout
+    localStorage.removeItem('token');
+    setAuthentication(false);
+    setUser(null);
   };
+
   return (
     <AuthContext.Provider
       value={{
-        isAuthenticated: false,
-        user: null,
+        isAuthenticated,
+        user,
         login,
         logout,
       }}
